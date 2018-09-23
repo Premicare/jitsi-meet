@@ -11,16 +11,16 @@ var interfaceConfig = {
      */
     DISABLE_VIDEO_BACKGROUND: false,
 
-    INITIAL_TOOLBAR_TIMEOUT: 20000,
-    TOOLBAR_TIMEOUT: 4000,
+    INITIAL_TOOLBAR_TIMEOUT: 2500,
+    TOOLBAR_TIMEOUT: 2000,
     TOOLBAR_ALWAYS_VISIBLE: false,
     DEFAULT_REMOTE_DISPLAY_NAME: 'Fellow Jitster',
     DEFAULT_LOCAL_DISPLAY_NAME: 'me',
-    SHOW_JITSI_WATERMARK: true,
+    SHOW_JITSI_WATERMARK: false,
     JITSI_WATERMARK_LINK: 'https://jitsi.org',
 
     // if watermark is disabled by default, it can be shown only for guests
-    SHOW_WATERMARK_FOR_GUESTS: true,
+    SHOW_WATERMARK_FOR_GUESTS: false,
     SHOW_BRAND_WATERMARK: false,
     BRAND_WATERMARK_LINK: '',
     SHOW_POWERED_BY: false,

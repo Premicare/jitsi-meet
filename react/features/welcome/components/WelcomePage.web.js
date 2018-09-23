@@ -1,7 +1,7 @@
 /* global interfaceConfig */
 
-import Button from '@atlaskit/button';
-import { FieldTextStateless } from '@atlaskit/field-text';
+// import Button from '@atlaskit/button';
+// import { FieldTextStateless } from '@atlaskit/field-text';
 import Tabs from '@atlaskit/tabs';
 import { AtlasKitThemeProvider } from '@atlaskit/theme';
 import React from 'react';
@@ -137,7 +137,7 @@ class WelcomePage extends AbstractWelcomePage {
                                     { app: APP_NAME }) }
                             </p>
                         </div>
-                        <div id = 'enter_room'>
+                        {/* <div id = 'enter_room'>
                             <form
                                 className = 'enter-room-input'
                                 onSubmit = { this._onFormSubmit }>
@@ -160,7 +160,7 @@ class WelcomePage extends AbstractWelcomePage {
                                 type = 'button'>
                                 { t('welcomepage.go') }
                             </Button>
-                        </div>
+                        </div> */}
                         { this._renderTabs() }
                     </div>
                     { showAdditionalContent
