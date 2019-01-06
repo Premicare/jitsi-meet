@@ -18,8 +18,7 @@ import {
 
 import { getActiveSession } from '../../functions';
 
-import StartRecordingDialog from './StartRecordingDialog';
-import StopRecordingDialog from './StopRecordingDialog';
+import { StartRecordingDialog, StopRecordingDialog } from './_';
 
 /**
  * The type of the React {@code Component} props of
@@ -107,6 +106,7 @@ export default class AbstractRecordButton<P: Props>
  * @private
  * @returns {{
  *     _isRecordingRunning: boolean,
+ *     disabledByFeatures: boolean,
  *     visible: boolean
  * }}
  */
@@ -123,15 +123,13 @@ export function _mapStateToProps(state: Object, ownProps: Props): Object {
         // its own to be visible or not.
         const isModerator = isLocalParticipantModerator(state);
         const {
-            dropbox = {},
             enableFeaturesBasedOnToken,
             fileRecordingsEnabled
         } = state['features/base/config'];
         const { features = {} } = getLocalParticipant(state);
 
         visible = isModerator
-            && fileRecordingsEnabled
-            && typeof dropbox.clientId === 'string';
+            && fileRecordingsEnabled;
 
         if (enableFeaturesBasedOnToken) {
             visible = visible && String(features.recording) === 'true';

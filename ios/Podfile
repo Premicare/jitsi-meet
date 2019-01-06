@@ -1,4 +1,4 @@
-platform :ios, '9.0'
+platform :ios, '10.0'
 
 workspace 'jitsi-meet'
 
@@ -26,14 +26,14 @@ target 'JitsiMeet' do
   pod 'Folly',
     :podspec => '../node_modules/react-native/third-party-podspecs/Folly.podspec'
 
+  pod 'ObjectiveDropboxOfficial'
+
   pod 'react-native-background-timer',
     :path => '../node_modules/react-native-background-timer'
   pod 'react-native-fast-image',
     :path => '../node_modules/react-native-fast-image'
   pod 'react-native-keep-awake',
     :path => '../node_modules/react-native-keep-awake'
-  pod 'react-native-locale-detector',
-    :path => '../node_modules/react-native-locale-detector'
   pod 'react-native-webrtc', :path => '../node_modules/react-native-webrtc'
   pod 'RNGoogleSignin',
     :path => '../node_modules/react-native-google-signin'

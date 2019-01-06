@@ -17,7 +17,7 @@ import {
     participantUpdated
 } from '../../../base/participants';
 import { getLocalVideoTrack, toggleScreensharing } from '../../../base/tracks';
-import { ChatCounter } from '../../../chat';
+import { ChatCounter, toggleChat } from '../../../chat';
 import { toggleDocument } from '../../../etherpad';
 import { openFeedbackDialog } from '../../../feedback';
 import {
@@ -41,7 +41,6 @@ import {
     openSettingsDialog
 } from '../../../settings';
 import { toggleSharedVideo } from '../../../shared-video';
-import { toggleChat } from '../../../side-panel';
 import { SpeakerStats } from '../../../speaker-stats';
 import { TileViewButton } from '../../../video-layout';
 import {
@@ -281,15 +280,15 @@ class Toolbox extends Component<Props> {
      *
      * @inheritdoc
      */
-    componentWillReceiveProps(nextProps) {
+    componentDidUpdate(prevProps) {
         // Ensure the dialog is closed when the toolbox becomes hidden.
-        if (this.props._overflowMenuVisible && !nextProps._visible) {
+        if (prevProps._overflowMenuVisible && !this.props._visible) {
             this._onSetOverflowVisible(false);
         }
 
-        if (this.props._overflowMenuVisible
-            && !this.props._dialog
-            && nextProps._dialog) {
+        if (prevProps._overflowMenuVisible
+            && !prevProps._dialog
+            && this.props._dialog) {
             this._onSetOverflowVisible(false);
             this.props.dispatch(setToolbarHovered(false));
         }
@@ -1032,7 +1031,6 @@ function _mapStateToProps(state) {
         iAmRecorder
     } = state['features/base/config'];
     const sharedVideoStatus = state['features/shared-video'].status;
-    const { current } = state['features/side-panel'];
     const {
         alwaysVisible,
         fullScreen,
@@ -1066,7 +1064,7 @@ function _mapStateToProps(state) {
     }
 
     return {
-        _chatOpen: current === 'chat_container',
+        _chatOpen: state['features/chat'].isOpen,
         _conference: conference,
         _desktopSharingEnabled: desktopSharingEnabled,
         _desktopSharingDisabledTooltipKey: desktopSharingDisabledTooltipKey,

@@ -1,6 +1,5 @@
 // @flow
 
-import PropTypes from 'prop-types';
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 
@@ -35,31 +34,42 @@ const _URLS = {
 };
 
 /**
+ * The type of the React {@code Component} props of
+ * {@link DeepLinkingMobilePage}.
+ */
+type Props = {
+
+    /**
+     * The name of the conference attempting to being joined.
+     */
+    _room: string,
+
+    /**
+     * The function to translate human-readable text.
+     */
+    t: Function
+};
+
+/**
+ * The type of the React {@code Component} state of
+ * {@link DeepLinkingMobilePage}.
+ */
+type State = {
+
+    /**
+     * The URL to link to on the button for opening the mobile app.
+     */
+    joinURL: string
+};
+
+/**
  * React component representing mobile browser page.
  *
  * @class DeepLinkingMobilePage
  */
-class DeepLinkingMobilePage extends Component<*, *> {
-    state: Object;
-
-    /**
-     * DeepLinkingMobilePage component's property types.
-     *
-     * @static
-     */
-    static propTypes = {
-        /**
-         * The name of the conference attempting to being joined.
-         */
-        _room: PropTypes.string,
-
-        /**
-         * The function to translate human-readable text.
-         *
-         * @public
-         * @type {Function}
-         */
-        t: PropTypes.func
+class DeepLinkingMobilePage extends Component<Props, State> {
+    state = {
+        joinURL: ''
     };
 
     /**
@@ -68,24 +78,16 @@ class DeepLinkingMobilePage extends Component<*, *> {
      * @param {Object} props - The read-only React {@code Component} props with
      * which the new instance is to be initialized.
      */
-    constructor(props) {
+    constructor(props: Props) {
         super(props);
+
+        this.state = {
+            joinURL: generateDeepLinkingURL()
+        };
 
         // Bind event handlers so they are only bound once per instance.
         this._onDownloadApp = this._onDownloadApp.bind(this);
         this._onOpenApp = this._onOpenApp.bind(this);
-    }
-
-    /**
-     * Initializes the text and URL of the `Start a conference` / `Join the
-     * conversation` button which takes the user to the mobile app.
-     *
-     * @inheritdoc
-     */
-    componentWillMount() {
-        this.setState({
-            joinURL: generateDeepLinkingURL()
-        });
     }
 
     /**

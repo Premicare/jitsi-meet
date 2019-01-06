@@ -32,6 +32,12 @@ export type Props = {
     onClick?: ?Function,
 
     /**
+     * The event handler/listener to be invoked when this
+     * {@code AbstractContainer} is long pressed on React Native.
+     */
+    onLongPress?: ?Function,
+
+    /**
      * The style (as in stylesheet) to be applied to this
      * {@code AbstractContainer}.
      */
@@ -57,7 +63,6 @@ export type Props = {
      */
     visible?: ?boolean
 };
-
 
 /**
  * Abstract (base) class for container of React {@link Component} children with
@@ -95,6 +100,7 @@ export default class AbstractContainer<P: Props> extends Component<P> {
             ...filteredProps
         } = props || this.props;
 
+        // $FlowFixMe
         return React.createElement(type, filteredProps, children);
     }
 }
