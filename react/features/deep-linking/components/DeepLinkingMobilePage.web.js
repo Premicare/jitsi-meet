@@ -51,27 +51,11 @@ type Props = {
 };
 
 /**
- * The type of the React {@code Component} state of
- * {@link DeepLinkingMobilePage}.
- */
-type State = {
-
-    /**
-     * The URL to link to on the button for opening the mobile app.
-     */
-    joinURL: string
-};
-
-/**
  * React component representing mobile browser page.
  *
  * @class DeepLinkingMobilePage
  */
-class DeepLinkingMobilePage extends Component<Props, State> {
-    state = {
-        joinURL: ''
-    };
-
+class DeepLinkingMobilePage extends Component<Props> {
     /**
      * Initializes a new {@code DeepLinkingMobilePage} instance.
      *
@@ -80,10 +64,6 @@ class DeepLinkingMobilePage extends Component<Props, State> {
      */
     constructor(props: Props) {
         super(props);
-
-        this.state = {
-            joinURL: generateDeepLinkingURL()
-        };
 
         // Bind event handlers so they are only bound once per instance.
         this._onDownloadApp = this._onDownloadApp.bind(this);
@@ -138,15 +118,19 @@ class DeepLinkingMobilePage extends Component<Props, State> {
                     </p>
                     <a
                         href = { this._generateDownloadURL() }
-                        onClick = { this._onDownloadApp } >
+                        onClick = { this._onDownloadApp }
+                        rel = 'noopener noreferrer'
+                        target = '_blank'>
                         <button className = { downloadButtonClassName }>
                             { t(`${_TNS}.downloadApp`) }
                         </button>
                     </a>
                     <a
                         className = { `${_SNS}__href` }
-                        href = { this.state.joinURL }
-                        onClick = { this._onOpenApp }>
+                        href = { generateDeepLinkingURL() }
+                        onClick = { this._onOpenApp }
+                        rel = 'noopener noreferrer'
+                        target = '_blank'>
                         {/* <button className = { `${_SNS}__button` }> */}
                         { t(`${_TNS}.openApp`) }
                         {/* </button> */}

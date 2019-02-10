@@ -76,10 +76,10 @@ import {
     dominantSpeakerChanged,
     getAvatarURLByParticipantId,
     getLocalParticipant,
+    getNormalizedDisplayName,
     getParticipantById,
     localParticipantConnectionStatusChanged,
     localParticipantRoleChanged,
-    MAX_DISPLAY_NAME_LENGTH,
     participantConnectionStatusChanged,
     participantPresenceChanged,
     participantRoleChanged,
@@ -347,7 +347,10 @@ class ConferenceConnector {
         // not enough rights to create conference
         case JitsiConferenceErrors.AUTHENTICATION_REQUIRED: {
             // Schedule reconnect to check if someone else created the room.
-            this.reconnectTimeout = setTimeout(() => room.join(), 5000);
+            this.reconnectTimeout = setTimeout(() => {
+                APP.store.dispatch(conferenceWillJoin(room));
+                room.join();
+            }, 5000);
 
             const { password }
                 = APP.store.getState()['features/base/conference'];
@@ -1234,6 +1237,7 @@ export default {
             = connection.initJitsiConference(
                 APP.conference.roomName,
                 this._getConferenceOptions());
+
         APP.store.dispatch(conferenceWillJoin(room));
         this._setLocalAudioVideoStreams(localTracks);
         this._room = room; // FIXME do not use this
@@ -1397,6 +1401,8 @@ export default {
             receiver.stop();
         }
 
+        this._stopProxyConnection();
+
         let promise = null;
 
         if (didHaveVideo) {
@@ -1472,9 +1478,12 @@ export default {
 
     /**
      * Creates desktop (screensharing) {@link JitsiLocalTrack}
+     *
      * @param {Object} [options] - Screen sharing options that will be passed to
      * createLocalTracks.
-     *
+     * @param {Object} [options.desktopSharing]
+     * @param {Object} [options.desktopStream] - An existing desktop stream to
+     * use instead of creating a new desktop stream.
      * @return {Promise.<JitsiLocalTrack>} - A Promise resolved with
      * {@link JitsiLocalTrack} for the screensharing or rejected with
      * {@link JitsiTrackError}.
@@ -1487,47 +1496,52 @@ export default {
         const didHaveVideo = Boolean(this.localVideo);
         const wasVideoMuted = this.isLocalVideoMuted();
 
-        return createLocalTracksF({
-            desktopSharingSources: options.desktopSharingSources,
-            devices: [ 'desktop' ],
-            desktopSharingExtensionExternalInstallation: {
-                interval: 500,
-                checkAgain: () => DSExternalInstallationInProgress,
-                listener: (status, url) => {
-                    switch (status) {
-                    case 'waitingForExtension': {
-                        DSExternalInstallationInProgress = true;
-                        externalInstallation = true;
-                        const listener = () => {
-                            // Wait a little bit more just to be sure that we
-                            // won't miss the extension installation
-                            setTimeout(
-                                () => {
+        const getDesktopStreamPromise = options.desktopStream
+            ? Promise.resolve([ options.desktopStream ])
+            : createLocalTracksF({
+                desktopSharingSourceDevice: options.desktopSharingSources
+                    ? null : config._desktopSharingSourceDevice,
+                desktopSharingSources: options.desktopSharingSources,
+                devices: [ 'desktop' ],
+                desktopSharingExtensionExternalInstallation: {
+                    interval: 500,
+                    checkAgain: () => DSExternalInstallationInProgress,
+                    listener: (status, url) => {
+                        switch (status) {
+                        case 'waitingForExtension': {
+                            DSExternalInstallationInProgress = true;
+                            externalInstallation = true;
+                            const listener = () => {
+                                // Wait a little bit more just to be sure that
+                                // we won't miss the extension installation
+                                setTimeout(() => {
                                     DSExternalInstallationInProgress = false;
                                 },
                                 500);
-                            APP.UI.removeListener(
+                                APP.UI.removeListener(
+                                    UIEvents.EXTERNAL_INSTALLATION_CANCELED,
+                                    listener);
+                            };
+
+                            APP.UI.addListener(
                                 UIEvents.EXTERNAL_INSTALLATION_CANCELED,
                                 listener);
-                        };
+                            APP.UI.showExtensionExternalInstallationDialog(url);
+                            break;
+                        }
+                        case 'extensionFound':
+                            // Close the dialog.
+                            externalInstallation && $.prompt.close();
+                            break;
+                        default:
 
-                        APP.UI.addListener(
-                            UIEvents.EXTERNAL_INSTALLATION_CANCELED,
-                            listener);
-                        APP.UI.showExtensionExternalInstallationDialog(url);
-                        break;
-                    }
-                    case 'extensionFound':
-                        // Close the dialog.
-                        externalInstallation && $.prompt.close();
-                        break;
-                    default:
-
-                        // Unknown status
+                            // Unknown status
+                        }
                     }
                 }
-            }
-        }).then(([ desktopStream ]) => {
+            });
+
+        return getDesktopStreamPromise.then(([ desktopStream ]) => {
             // Stores the "untoggle" handler which remembers whether was
             // there any video before and whether was it muted.
             this._untoggleScreenSharing
@@ -1645,6 +1659,7 @@ export default {
         // Handling:
         // JitsiTrackErrors.PERMISSION_DENIED
         // JitsiTrackErrors.CHROME_EXTENSION_INSTALLATION_ERROR
+        // JitsiTrackErrors.CONSTRAINT_FAILED
         // JitsiTrackErrors.GENERAL
         // and any other
         let descriptionKey;
@@ -1668,6 +1683,9 @@ export default {
                 descriptionKey = 'dialog.screenSharingPermissionDeniedError';
                 titleKey = 'dialog.screenSharingFailedToInstallTitle';
             }
+        } else if (error.name === JitsiTrackErrors.CONSTRAINT_FAILED) {
+            descriptionKey = 'dialog.cameraConstraintFailedError';
+            titleKey = 'deviceError.cameraError';
         } else {
             descriptionKey = 'dialog.screenSharingFailedToInstall';
             titleKey = 'dialog.screenSharingFailedToInstallTitle';
@@ -1841,7 +1859,7 @@ export default {
             JitsiConferenceEvents.DISPLAY_NAME_CHANGED,
             (id, displayName) => {
                 const formattedDisplayName
-                    = displayName.substr(0, MAX_DISPLAY_NAME_LENGTH);
+                    = getNormalizedDisplayName(displayName);
 
                 APP.store.dispatch(participantUpdated({
                     conference: room,
@@ -2217,34 +2235,6 @@ export default {
      * @returns {void}
      */
     _onConferenceJoined() {
-        if (APP.logCollector) {
-            // Start the LogCollector's periodic "store logs" task
-            APP.logCollector.start();
-            APP.logCollectorStarted = true;
-
-            // Make an attempt to flush in case a lot of logs have been
-            // cached, before the collector was started.
-            APP.logCollector.flush();
-
-            // This event listener will flush the logs, before
-            // the statistics module (CallStats) is stopped.
-            //
-            // NOTE The LogCollector is not stopped, because this event can
-            // be triggered multiple times during single conference
-            // (whenever statistics module is stopped). That includes
-            // the case when Jicofo terminates the single person left in the
-            // room. It will then restart the media session when someone
-            // eventually join the room which will start the stats again.
-            APP.conference.addConferenceListener(
-                JitsiConferenceEvents.BEFORE_STATISTICS_DISPOSED,
-                () => {
-                    if (APP.logCollector) {
-                        APP.logCollector.flush();
-                    }
-                }
-            );
-        }
-
         APP.UI.initConference();
 
         APP.keyboardshortcut.init();
@@ -2468,6 +2458,8 @@ export default {
     hangup(requestFeedback = false) {
         eventEmitter.emit(JitsiMeetConferenceEvents.BEFORE_HANGUP);
 
+        this._stopProxyConnection();
+
         APP.store.dispatch(destroyLocalTracks());
         this._localTracksInitialized = false;
         this.localVideo = null;
@@ -2503,6 +2495,9 @@ export default {
             requestFeedbackPromise,
             this.leaveRoomAndDisconnect()
         ]).then(values => {
+            this._room = undefined;
+            room = undefined;
+
             APP.API.notifyReadyToClose();
             maybeRedirectToWelcomePage(values[0]);
         });
@@ -2517,11 +2512,7 @@ export default {
         APP.store.dispatch(conferenceWillLeave(room));
 
         return room.leave()
-            .then(disconnect, disconnect)
-            .then(() => {
-                this._room = undefined;
-                room = undefined;
-            });
+            .then(disconnect, disconnect);
     },
 
     /**
@@ -2627,8 +2618,7 @@ export default {
      * @param nickname {string} the new display name
      */
     changeLocalDisplayName(nickname = '') {
-        const formattedNickname
-            = nickname.trim().substr(0, MAX_DISPLAY_NAME_LENGTH);
+        const formattedNickname = getNormalizedDisplayName(nickname);
         const { id, name } = getLocalParticipant(APP.store.getState());
 
         if (formattedNickname === name) {
@@ -2660,7 +2650,6 @@ export default {
         });
 
         if (room) {
-            room.setDisplayName(formattedNickname);
             APP.UI.changeDisplayName(id, formattedNickname);
         }
     },
@@ -2686,6 +2675,65 @@ export default {
      */
     getDesktopSharingSourceType() {
         return this.localVideo.sourceType;
+    },
+
+    /**
+     * Callback invoked by the external api create or update a direct connection
+     * from the local client to an external client.
+     *
+     * @param {Object} event - The object containing information that should be
+     * passed to the {@code ProxyConnectionService}.
+     * @returns {void}
+     */
+    onProxyConnectionEvent(event) {
+        if (!this._proxyConnection) {
+            this._proxyConnection = new JitsiMeetJS.ProxyConnectionService({
+                /**
+                 * The proxy connection feature is currently tailored towards
+                 * taking a proxied video stream and showing it as a local
+                 * desktop screen.
+                 */
+                convertVideoToDesktop: true,
+
+                /**
+                 * Callback invoked to pass messages from the local client back
+                 * out to the external client.
+                 *
+                 * @param {string} peerJid - The jid of the intended recipient
+                 * of the message.
+                 * @param {Object} data - The message that should be sent. For
+                 * screensharing this is an iq.
+                 * @returns {void}
+                 */
+                onSendMessage: (peerJid, data) =>
+                    APP.API.sendProxyConnectionEvent({
+                        data,
+                        to: peerJid
+                    }),
+
+                /**
+                 * Callback invoked when the remote peer of the proxy connection
+                 * has provided a video stream, intended to be used as a local
+                 * desktop stream.
+                 *
+                 * @param {JitsiLocalTrack} remoteProxyStream - The media
+                 * stream to use as a local desktop stream.
+                 * @returns {void}
+                 */
+                onRemoteStream: desktopStream => {
+                    if (desktopStream.videoType !== 'desktop') {
+                        logger.warn('Received a non-desktop stream to proxy.');
+                        desktopStream.dispose();
+
+                        return;
+                    }
+
+                    this.toggleScreenSharing(undefined, { desktopStream });
+                }
+            });
+        }
+
+        this._proxyConnection.processMessage(event);
     },
 
     /**
@@ -2722,5 +2770,19 @@ export default {
         if (score === -1 || (score >= 1 && score <= 5)) {
             APP.store.dispatch(submitFeedback(score, message, room));
         }
+    },
+
+    /**
+     * Terminates any proxy screensharing connection that is active.
+     *
+     * @private
+     * @returns {void}
+     */
+    _stopProxyConnection() {
+        if (this._proxyConnection) {
+            this._proxyConnection.stop();
+        }
+
+        this._proxyConnection = null;
     }
 };

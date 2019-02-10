@@ -1,6 +1,5 @@
 // @flow
 
-import { getAppProp } from '../base/app';
 import { i18next } from '../base/i18n';
 import { isLocalParticipantModerator } from '../base/participants';
 import { doGetJSON, parseURIString } from '../base/util';
@@ -56,12 +55,22 @@ export function getDialInConferenceID(
  * Sends a GET request for phone numbers used to dial into a conference.
  *
  * @param {string} url - The service that returns confernce dial-in numbers.
+ * @param {string} roomName - The conference name to find the associated
+ * conference ID.
+ * @param {string} mucURL - In which MUC the conference exists.
  * @returns {Promise} - The promise created by the request. The returned numbers
  * may be an array of numbers or an object with countries as keys and arrays of
  * phone number strings.
  */
-export function getDialInNumbers(url: string): Promise<*> {
-    return doGetJSON(url);
+export function getDialInNumbers(
+        url: string,
+        roomName: string,
+        mucURL: string
+): Promise<*> {
+
+    const fullUrl = `${url}?conference=${roomName}@${mucURL}`;
+
+    return doGetJSON(fullUrl);
 }
 
 /**
@@ -287,18 +296,7 @@ export function invitePeopleAndChatRooms( // eslint-disable-line max-params
 export function isAddPeopleEnabled(state: Object): boolean {
     const { isGuest } = state['features/base/jwt'];
 
-    if (!isGuest) {
-        // XXX The mobile/react-native app is capable of disabling the
-        // adding/inviting of people in the current conference. Anyway, the
-        // Web/React app does not have that capability so default appropriately.
-        const addPeopleEnabled = getAppProp(state, 'addPeopleEnabled');
-
-        return (
-            (typeof addPeopleEnabled === 'undefined')
-                || Boolean(addPeopleEnabled));
-    }
-
-    return false;
+    return !isGuest;
 }
 
 /**
@@ -309,21 +307,9 @@ export function isAddPeopleEnabled(state: Object): boolean {
  */
 export function isDialOutEnabled(state: Object): boolean {
     const { conference } = state['features/base/conference'];
-    let dialOutEnabled = isLocalParticipantModerator(state)
-        && conference
-        && conference.isSIPCallingSupported();
 
-    if (dialOutEnabled) {
-        // XXX The mobile/react-native app is capable of disabling of dial-out.
-        // Anyway, the Web/React app does not have that capability so default
-        // appropriately.
-        dialOutEnabled = getAppProp(state, 'dialOutEnabled');
-
-        return (
-            (typeof dialOutEnabled === 'undefined') || Boolean(dialOutEnabled));
-    }
-
-    return false;
+    return isLocalParticipantModerator(state)
+        && conference && conference.isSIPCallingSupported();
 }
 
 /**
@@ -442,7 +428,7 @@ export function getShareInfoText(
             }
 
             numbersPromise = Promise.all([
-                getDialInNumbers(dialInNumbersUrl),
+                getDialInNumbers(dialInNumbersUrl, room, mucURL),
                 getDialInConferenceID(dialInConfCodeUrl, room, mucURL)
             ]).then(([ { defaultCountry, numbers }, {
                 conference, id, message } ]) => {

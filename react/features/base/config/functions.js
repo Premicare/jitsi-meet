@@ -17,6 +17,7 @@ declare var $: Object;
  * @type Array
  */
 const WHITELISTED_KEYS = [
+    '_desktopSharingSourceDevice',
     '_peerConnStatusOutOfLastNTimeout',
     '_peerConnStatusRtcMuteTimeout',
     'abTesting',
@@ -119,6 +120,7 @@ const WHITELISTED_KEYS = [
     'iceTransportPolicy',
     'ignoreStartMuted',
     'liveStreamingEnabled',
+    'localRecording',
     'minParticipants',
     'nick',
     'openBridgeChannel',

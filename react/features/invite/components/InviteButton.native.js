@@ -3,6 +3,7 @@
 import { connect } from 'react-redux';
 import type { Dispatch } from 'redux';
 
+import { translate } from '../../base/i18n';
 import { AbstractButton } from '../../base/toolbox';
 import type { AbstractButtonProps } from '../../base/toolbox';
 import { beginShareRoom } from '../../share-room';
@@ -38,16 +39,6 @@ type Props = AbstractButtonProps & {
 };
 
 /**
- * The indicator which determines (at bundle time) whether there should be a
- * button in {@code Toolbox} to expose the functionality of the feature
- * share-room in the user interface of the app.
- *
- * @private
- * @type {boolean}
- */
-const _SHARE_ROOM_TOOLBAR_BUTTON = true;
-
-/**
  * Implements an {@link AbstractButton} to enter add/invite people to the
  * current call/conference/meeting.
  */
@@ -63,35 +54,12 @@ class InviteButton extends AbstractButton<Props, *> {
      * @returns {void}
      */
     _handleClick() {
+        // FIXME: dispatch _onAddPeople here, when we have a dialog for it.
         const {
-            _addPeopleEnabled,
-            _dialOutEnabled,
-            _onAddPeople,
             _onShareRoom
         } = this.props;
 
-        if (_addPeopleEnabled || _dialOutEnabled) {
-            _onAddPeople();
-        } else if (_SHARE_ROOM_TOOLBAR_BUTTON) {
-            _onShareRoom();
-        }
-    }
-
-    /**
-     * Implements React's {@link Component#render()}.
-     *
-     * @inheritdoc
-     * @returns {React$Node}
-     */
-    render() {
-        const { _addPeopleEnabled, _dialOutEnabled } = this.props;
-
-        return (
-            _SHARE_ROOM_TOOLBAR_BUTTON
-                    || _addPeopleEnabled
-                    || _dialOutEnabled
-                ? super.render()
-                : null);
+        _onShareRoom();
     }
 }
 
@@ -109,7 +77,7 @@ class InviteButton extends AbstractButton<Props, *> {
 function _mapDispatchToProps(dispatch: Dispatch<*>) {
     return {
         /**
-         * Launches native invite dialog.
+         * Launches the add people dialog.
          *
          * @private
          * @returns {void}
@@ -161,4 +129,5 @@ function _mapStateToProps(state) {
     };
 }
 
-export default connect(_mapStateToProps, _mapDispatchToProps)(InviteButton);
+export default translate(
+    connect(_mapStateToProps, _mapDispatchToProps)(InviteButton));

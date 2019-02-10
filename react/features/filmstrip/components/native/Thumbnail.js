@@ -3,6 +3,7 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 
+import { ColorSchemeRegistry } from '../../../base/color-scheme';
 import { openDialog } from '../../../base/dialog';
 import { Audio, MEDIA_TYPE } from '../../../base/media';
 import {
@@ -12,6 +13,7 @@ import {
     pinParticipant
 } from '../../../base/participants';
 import { Container } from '../../../base/react';
+import { StyleType } from '../../../base/styles';
 import { getTrackByMediaTypeAndParticipant } from '../../../base/tracks';
 
 import { RemoteVideoMenu } from '../../../remote-video-menu';
@@ -42,6 +44,21 @@ type Props = {
      * The Redux representation of the state "features/large-video".
      */
     _largeVideo: Object,
+
+    /**
+     * Handles click/tap event on the thumbnail.
+     */
+    _onClick: ?Function,
+
+    /**
+     * Handles long press on the thumbnail.
+     */
+    _onShowRemoteVideoMenu: ?Function,
+
+    /**
+     * The color-schemed stylesheet of the feature.
+     */
+    _styles: StyleType,
 
     /**
      * The Redux representation of the participant's video track.
@@ -84,19 +101,6 @@ type Props = {
  */
 class Thumbnail extends Component<Props> {
     /**
-     * Initializes new Video Thumbnail component.
-     *
-     * @param {Object} props - Component props.
-     */
-    constructor(props: Props) {
-        super(props);
-
-        // Bind event handlers so they are only bound once for every instance.
-        this._onClick = this._onClick.bind(this);
-        this._onShowRemoteVideoMenu = this._onShowRemoteVideoMenu.bind(this);
-    }
-
-    /**
      * Implements React's {@link Component#render()}.
      *
      * @inheritdoc
@@ -107,6 +111,9 @@ class Thumbnail extends Component<Props> {
             _audioTrack: audioTrack,
             _isModerator,
             _largeVideo: largeVideo,
+            _onClick,
+            _onShowRemoteVideoMenu,
+            _styles,
             _videoTrack: videoTrack,
             disablePin,
             disableTint,
@@ -129,13 +136,14 @@ class Thumbnail extends Component<Props> {
 
         return (
             <Container
-                onClick = { disablePin ? undefined : this._onClick }
+                onClick = { disablePin ? undefined : _onClick }
                 onLongPress = {
-                    showRemoteVideoMenu && this._onShowRemoteVideoMenu }
+                    showRemoteVideoMenu
+                        ? _onShowRemoteVideoMenu : undefined }
                 style = { [
                     styles.thumbnail,
                     participant.pinned && !disablePin
-                        ? styles.thumbnailPinned : null,
+                        ? _styles.thumbnailPinned : null,
                     this.props.styleOverrides || null
                 ] }
                 touchFeedback = { false }>
@@ -148,7 +156,9 @@ class Thumbnail extends Component<Props> {
                 <ParticipantView
                     avatarSize = { AVATAR_SIZE }
                     participantId = { participantId }
+                    style = { _styles.participantViewStyle }
                     tintEnabled = { participantInLargeVideo && !disableTint }
+                    tintStyle = { _styles.activeThumbnailTint }
                     zOrder = { 1 } />
 
                 { participant.role === PARTICIPANT_ROLE.MODERATOR
@@ -168,47 +178,58 @@ class Thumbnail extends Component<Props> {
             </Container>
         );
     }
+}
 
-    _onClick: () => void;
+/**
+ * Maps part of redux actions to component's props.
+ *
+ * @param {Function} dispatch - Redux's {@code dispatch} function.
+ * @param {Props} ownProps - The own props of the component.
+ * @returns {{
+ *     _onClick: Function,
+ *     _onShowRemoteVideoMenu: Function
+ * }}
+ */
+function _mapDispatchToProps(dispatch: Function, ownProps): Object {
+    return {
+        /**
+         * Handles click/tap event on the thumbnail.
+         *
+         * @protected
+         * @returns {void}
+         */
+        _onClick() {
+            const { participant } = ownProps;
 
-    /**
-     * Handles click/tap event on the thumbnail.
-     *
-     * @returns {void}
-     */
-    _onClick() {
-        const { dispatch, participant } = this.props;
+            dispatch(
+                pinParticipant(participant.pinned ? null : participant.id));
+        },
 
-        // TODO The following currently ignores interfaceConfig.filmStripOnly.
-        dispatch(pinParticipant(participant.pinned ? null : participant.id));
-    }
+        /**
+         * Handles long press on the thumbnail.
+         *
+         * @returns {void}
+         */
+        _onShowRemoteVideoMenu() {
+            const { participant } = ownProps;
 
-    _onShowRemoteVideoMenu: () => void;
-
-    /**
-     * Handles long press on the thumbnail.
-     *
-     * @returns {void}
-     */
-    _onShowRemoteVideoMenu() {
-        const { dispatch, participant } = this.props;
-
-        dispatch(openDialog(RemoteVideoMenu, {
-            participant
-        }));
-    }
+            dispatch(openDialog(RemoteVideoMenu, {
+                participant
+            }));
+        }
+    };
 }
 
 /**
  * Function that maps parts of Redux state tree into component props.
  *
  * @param {Object} state - Redux state.
- * @param {Object} ownProps - Properties of component.
- * @private
+ * @param {Props} ownProps - Properties of component.
  * @returns {{
  *      _audioTrack: Track,
  *      _isModerator: boolean,
  *      _largeVideo: Object,
+ *      _styles: StyleType,
  *      _videoTrack: Track
  *  }}
  */
@@ -228,8 +249,9 @@ function _mapStateToProps(state, ownProps) {
         _audioTrack: audioTrack,
         _isModerator: isLocalParticipantModerator(state),
         _largeVideo: largeVideo,
+        _styles: ColorSchemeRegistry.get(state, 'Thumbnail'),
         _videoTrack: videoTrack
     };
 }
 
-export default connect(_mapStateToProps)(Thumbnail);
+export default connect(_mapStateToProps, _mapDispatchToProps)(Thumbnail);

@@ -334,14 +334,19 @@ var config = {
         // backToP2PDelay: 5
     },
 
-    // A list of scripts to load as lib-jitsi-meet "analytics handlers".
-    // analyticsScriptUrls: [
-    //      "libs/analytics-ga.js", // google-analytics
-    //      "https://example.com/my-custom-analytics.js"
-    // ],
+    analytics: {
+        // The Google Analytics Tracking ID:
+        // googleAnalyticsTrackingId: 'your-tracking-id-UA-123456-1'
 
-    // The Google Analytics Tracking ID
-    // googleAnalyticsTrackingId = 'your-tracking-id-here-UA-123456-1',
+        // The Amplitude APP Key:
+        // amplitudeAPPKey: '<APP_KEY>'
+
+        // Array of script URLs to load as lib-jitsi-meet "analytics handlers".
+        // scriptURLs: [
+        //      "libs/analytics-ga.min.js", // google-analytics
+        //      "https://example.com/my-custom-analytics.js"
+        // ],
+    },
 
     // Information about the jitsi-meet instance we are connecting to, including
     // the user region as seen by the server.
@@ -380,6 +385,13 @@ var config = {
     //   // to <= 0 to disable.
     //   analyticsInterval: 60000,
     //   }
+
+    // If set, will attempt to use the provided video input device label when
+    // triggering a screenshare, instead of proceeding through the normal flow
+    // for obtaining a desktop stream.
+    // NOTE: This option is experimental and is currently intended for internal
+    // use only.
+    // _desktopSharingSourceDevice: 'sample-id-or-label'
 
     // List of undocumented settings used in jitsi-meet
     /**

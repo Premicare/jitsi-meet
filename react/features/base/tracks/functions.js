@@ -62,6 +62,8 @@ export function createLocalTracksF(
                 desktopSharingExtensionExternalInstallation:
                     options.desktopSharingExtensionExternalInstallation,
                 desktopSharingFrameRate,
+                desktopSharingSourceDevice:
+                    options.desktopSharingSourceDevice,
                 desktopSharingSources: options.desktopSharingSources,
 
                 // Copy array to avoid mutations inside library.
@@ -205,6 +207,22 @@ export function getTracksByMediaType(tracks, mediaType) {
  */
 export function isLocalTrackMuted(tracks, mediaType) {
     const track = getLocalTrack(tracks, mediaType);
+
+    return !track || track.muted;
+}
+
+/**
+ * Returns true if the remote track of the given media type and the given
+ * participant is muted, false otherwise.
+ *
+ * @param {Track[]} tracks - List of all tracks.
+ * @param {MEDIA_TYPE} mediaType - The media type of tracks to be checked.
+ * @param {*} participantId - Participant ID.
+ * @returns {boolean}
+ */
+export function isRemoteTrackMuted(tracks, mediaType, participantId) {
+    const track = getTrackByMediaTypeAndParticipant(
+        tracks, mediaType, participantId);
 
     return !track || track.muted;
 }

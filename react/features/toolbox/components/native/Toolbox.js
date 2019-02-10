@@ -5,16 +5,18 @@ import { View } from 'react-native';
 import { connect } from 'react-redux';
 
 import { Container } from '../../../base/react';
-import { InviteButton } from '../../../invite';
+import { ColorSchemeRegistry } from '../../../base/color-scheme';
+import { StyleType } from '../../../base/styles';
+import { ChatButton } from '../../../chat';
+
+import { isToolboxVisible } from '../../functions';
+import { HANGUP_BUTTON_SIZE } from '../../constants';
 
 import AudioMuteButton from '../AudioMuteButton';
 import HangupButton from '../HangupButton';
+
 import OverflowMenuButton from './OverflowMenuButton';
-import styles, {
-    hangupButtonStyles,
-    toolbarButtonStyles,
-    toolbarToggledButtonStyles
-} from './styles';
+import styles from './styles';
 import VideoMuteButton from '../VideoMuteButton';
 
 /**
@@ -38,6 +40,11 @@ const _BUTTON_SIZE_FACTOR = 0.85;
  * The type of {@link Toolbox}'s React {@code Component} props.
  */
 type Props = {
+
+    /**
+     * The color-schemed stylesheet of the feature.
+     */
+    _styles: StyleType,
 
     /**
      * The indicator which determines whether the toolbox is visible.
@@ -107,6 +114,7 @@ class Toolbox extends Component<Props, State> {
      * @returns {number}
      */
     _calculateButtonSize() {
+        const { _styles } = this.props;
         const { width } = this.state;
 
         if (width <= 0) {
@@ -114,8 +122,8 @@ class Toolbox extends Component<Props, State> {
             return width;
         }
 
-        const hangupButtonSize = styles.hangupButton.width;
-        const { style } = toolbarButtonStyles;
+        const hangupButtonSize = HANGUP_BUTTON_SIZE;
+        const { style } = _styles.buttonStyles;
         let buttonSize
             = (width
 
@@ -141,6 +149,37 @@ class Toolbox extends Component<Props, State> {
         return 2 * Math.round(buttonSize / 2);
     }
 
+    /**
+     * Constructs the toggled style of the chat button. This cannot be done by
+     * simple style inheritance due to the size calculation done in this
+     * component.
+     *
+     * @param {Object} baseStyle - The base style that was originally
+     * calculated.
+     * @returns {Object | Array}
+     */
+    _getChatButtonToggledStyle(baseStyle) {
+        const { _styles } = this.props;
+
+        if (Array.isArray(baseStyle.style)) {
+            return {
+                ...baseStyle,
+                style: [
+                    ...baseStyle.style,
+                    _styles.chatButtonOverride.toggled
+                ]
+            };
+        }
+
+        return {
+            ...baseStyle,
+            style: [
+                baseStyle.style,
+                _styles.chatButtonOverride.toggled
+            ]
+        };
+    }
+
     _onLayout: (Object) => void;
 
     /**
@@ -163,9 +202,9 @@ class Toolbox extends Component<Props, State> {
      * @returns {React$Node}
      */
     _renderToolbar() {
+        const { _styles } = this.props;
         const buttonSize = this._calculateButtonSize();
-        let buttonStyles = toolbarButtonStyles;
-        let toggledButtonStyles = toolbarToggledButtonStyles;
+        let { buttonStyles, toggledButtonStyles } = _styles;
 
         if (buttonSize > 0) {
             const extraButtonStyle = {
@@ -200,11 +239,16 @@ class Toolbox extends Component<Props, State> {
             <View
                 pointerEvents = 'box-none'
                 style = { styles.toolbar }>
-                <InviteButton styles = { buttonStyles } />
+                <ChatButton
+                    styles = { buttonStyles }
+                    toggledStyles = {
+                        this._getChatButtonToggledStyle(toggledButtonStyles)
+                    } />
                 <AudioMuteButton
                     styles = { buttonStyles }
                     toggledStyles = { toggledButtonStyles } />
-                <HangupButton styles = { hangupButtonStyles } />
+                <HangupButton
+                    styles = { _styles.hangupButtonStyles } />
                 <VideoMuteButton
                     styles = { buttonStyles }
                     toggledStyles = { toggledButtonStyles } />
@@ -224,14 +268,14 @@ class Toolbox extends Component<Props, State> {
  * {@code Toolbox} props.
  * @private
  * @returns {{
+ *     _styles: StyleType,
  *     _visible: boolean
  * }}
  */
 function _mapStateToProps(state: Object): Object {
-    const { alwaysVisible, enabled, visible } = state['features/toolbox'];
-
     return {
-        _visible: enabled && (alwaysVisible || visible)
+        _styles: ColorSchemeRegistry.get(state, 'Toolbox'),
+        _visible: isToolboxVisible(state)
     };
 }
 

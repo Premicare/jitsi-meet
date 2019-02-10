@@ -4,17 +4,27 @@ import React, { Component } from 'react';
 import { Text, View } from 'react-native';
 import { connect } from 'react-redux';
 
+import { ColorSchemeRegistry } from '../../../base/color-scheme';
 import {
-    BottomSheet,
-    bottomSheetItemStylesCombined
+    BottomSheet
 } from '../../../base/dialog';
-import { getParticipantDisplayName } from '../../../base/participants';
+import {
+    Avatar,
+    getAvatarURL,
+    getParticipantDisplayName
+} from '../../../base/participants';
+import { StyleType } from '../../../base/styles';
 
 import { hideRemoteVideoMenu } from '../../actions';
 
 import KickButton from './KickButton';
 import MuteButton from './MuteButton';
 import styles from './styles';
+
+/**
+ * Size of the rendered avatar in the menu.
+ */
+const AVATAR_SIZE = 25;
 
 type Props = {
 
@@ -27,6 +37,16 @@ type Props = {
      * The participant for which this menu opened for.
      */
     participant: Object,
+
+    /**
+     * URL of the avatar of the participant.
+     */
+    _avatarURL: string,
+
+    /**
+     * The color-schemed stylesheet of the BottomSheet.
+     */
+    _bottomSheetStyles: StyleType,
 
     /**
      * Display name of the participant retreived from Redux.
@@ -58,13 +78,16 @@ class RemoteVideoMenu extends Component<Props> {
         const buttonProps = {
             afterClick: this._onCancel,
             showLabel: true,
-            participant: this.props.participant,
-            styles: bottomSheetItemStylesCombined
+            participantID: this.props.participant.id,
+            styles: this.props._bottomSheetStyles
         };
 
         return (
             <BottomSheet onCancel = { this._onCancel }>
                 <View style = { styles.participantNameContainer }>
+                    <Avatar
+                        size = { AVATAR_SIZE }
+                        uri = { this.props._avatarURL } />
                     <Text style = { styles.participantNameLabel }>
                         { this.props._participantDisplayName }
                     </Text>
@@ -95,14 +118,20 @@ class RemoteVideoMenu extends Component<Props> {
  * @param {Object} ownProps - Properties of component.
  * @private
  * @returns {{
+ *      _avatarURL: string,
+ *      _bottomSheetStyles: StyleType,
  *      _participantDisplayName: string
  *  }}
  */
 function _mapStateToProps(state, ownProps) {
-    const { id } = ownProps.participant;
+    const { participant } = ownProps;
 
     return {
-        _participantDisplayName: getParticipantDisplayName(state, id)
+        _avatarURL: getAvatarURL(participant),
+        _bottomSheetStyles:
+            ColorSchemeRegistry.get(state, 'BottomSheet'),
+        _participantDisplayName: getParticipantDisplayName(
+            state, participant.id)
     };
 }
 
